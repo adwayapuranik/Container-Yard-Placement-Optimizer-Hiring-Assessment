@@ -17,6 +17,7 @@ from src.models import Event, Position
 from src.placement_interface import PlacementStrategy
 from src.yard_state import YardState
 
+
 class OfflinePriorityStrategy(PlacementStrategy):
     """Minimizes new blockers using known future retrieval order."""
 
@@ -57,14 +58,25 @@ class OfflinePriorityStrategy(PlacementStrategy):
             if height > 0:
                 top_id = yard_state.get_container_at(block_name, bay, row, height)
                 if top_id is not None:
-                    top_priority = self._priority_for_container_id(top_id)
                     top_info = yard_state.get_container_info(top_id)
+                    if top_info is not None:
+                        top_priority = self._priority_from_fields(
+                            container_id=top_info.container_id,
+                            departure_time=top_info.departure_time,
+                        )
 
             for tier in range(1, height + 1):
                 container_id = yard_state.get_container_at(block_name, bay, row, tier)
                 if container_id is None:
                     continue
-                if self._priority_for_container_id(container_id) < new_priority:
+                info = yard_state.get_container_info(container_id)
+                if info is None:
+                    continue
+                existing_priority = self._priority_from_fields(
+                    container_id=info.container_id,
+                    departure_time=info.departure_time,
+                )
+                if existing_priority < new_priority:
                     blockers += 1
 
             same_batch_bonus = 0
